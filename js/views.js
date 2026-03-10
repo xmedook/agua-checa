@@ -1,0 +1,530 @@
+// =============================================
+// AquaTrack — View Templates
+// =============================================
+
+function formatDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function formatTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDateTime(iso) {
+    return `${formatDate(iso)} ${formatTime(iso)}`;
+}
+
+function getClientName(id) {
+    const c = DB.findById(DB.KEYS.CLIENTS, id);
+    return c ? c.nombre : 'Desconocido';
+}
+
+function getOperadorName(id) {
+    const u = DB.findById(DB.KEYS.USERS, id);
+    return u ? u.nombre : 'Desconocido';
+}
+
+function getInitials(name) {
+    return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+}
+
+// =============================================
+// LOGIN VIEW
+// =============================================
+function renderLogin() {
+    return `
+    <div class="login-page">
+      <div class="login-card">
+        <div class="login-logo">
+          <span class="logo-icon">💧</span>
+          <h1>AquaTrack</h1>
+          <p>Sistema de Logística y Ventas</p>
+        </div>
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label">Usuario</label>
+            <div class="form-input-icon">
+              <span class="icon">👤</span>
+              <input type="text" class="form-input" id="login-username" placeholder="Ej: operador1" autocomplete="username" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contraseña</label>
+            <div class="form-input-icon">
+              <span class="icon">🔒</span>
+              <input type="password" class="form-input" id="login-password" placeholder="••••••" autocomplete="current-password" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg btn-full" id="login-btn">
+            Iniciar Sesión
+          </button>
+        </form>
+        <div class="text-center mt-4">
+          <p class="text-sm text-muted">Demo: <strong>operador1</strong> / <strong>demo123</strong></p>
+          <p class="text-sm text-muted">Admin: <strong>admin</strong> / <strong>admin123</strong></p>
+        </div>
+      </div>
+    </div>`;
+}
+
+// =============================================
+// HEADER
+// =============================================
+function renderHeader(user) {
+    return `
+    <header class="header">
+      <div class="header-brand">
+        <span class="brand-icon">💧</span>
+        AquaTrack
+      </div>
+      <div class="header-user">
+        <div style="text-align:right">
+          <div class="user-name">${user.nombre}</div>
+          <div class="user-role">${user.rol}</div>
+        </div>
+        <div class="user-avatar">${getInitials(user.nombre)}</div>
+        <button class="btn btn-ghost btn-icon" onclick="App.logout()" title="Cerrar sesión">🚪</button>
+      </div>
+    </header>`;
+}
+
+// =============================================
+// OPERATOR DASHBOARD
+// =============================================
+function renderDashboard() {
+    const user = Session.getUser();
+    const movements = DB.getAll(DB.KEYS.MOVEMENTS)
+        .filter(m => m.operadorId === user.id)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    const today = new Date().toDateString();
+    const todayMoves = movements.filter(m => new Date(m.timestamp).toDateString() === today);
+    const todayAgua = todayMoves.reduce((s, m) => s + (m.cantidadAgua || 0), 0);
+    const todayHielo = todayMoves.reduce((s, m) => s + (m.cantidadHielo || 0), 0);
+    const todayVentas = todayMoves.filter(m => m.tipo === 'VENTA').length;
+
+    const recentItems = movements.slice(0, 8).map(m => {
+        const isVenta = m.tipo === 'VENTA';
+        return `
+      <div class="activity-item">
+        <div class="activity-icon ${isVenta ? 'venta' : 'sin-venta'}">
+          ${isVenta ? '🚰' : '🚫'}
+        </div>
+        <div class="activity-info">
+          <div class="activity-name">${getClientName(m.clienteId)}</div>
+          <div class="activity-detail">
+            ${isVenta ? `${m.cantidadAgua}💧 ${m.cantidadHielo}🧊` : 'Sin venta'}
+            ${m.fueEditado ? '<span class="badge badge-warning">Editado</span>' : ''}
+          </div>
+        </div>
+        <div class="activity-time">${formatTime(m.timestamp)}</div>
+      </div>`;
+    }).join('');
+
+    return `
+    ${renderHeader(user)}
+    <div class="main-content page-enter">
+      <div class="scan-cta" onclick="App.navigate('scan')">
+        <span class="scan-icon">📷</span>
+        <div class="scan-text">ESCANEAR CLIENTE</div>
+        <div class="scan-subtext">Toca para registrar visita</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-value">${todayMoves.length}</div>
+          <div class="stat-label">Visitas hoy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value">${todayVentas}</div>
+          <div class="stat-label">Ventas hoy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💧</div>
+          <div class="stat-value">${todayAgua}</div>
+          <div class="stat-label">Garrafones</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🧊</div>
+          <div class="stat-value">${todayHielo}</div>
+          <div class="stat-label">Hielo</div>
+        </div>
+      </div>
+
+      <div class="activity-list">
+        <div class="section-title">📜 Últimos registros</div>
+        <div class="card">
+          ${recentItems || '<div class="empty-state"><div class="empty-icon">📭</div><h4>Sin registros aún</h4><p class="text-muted">Escanea un QR para comenzar</p></div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+// =============================================
+// QR SCAN PAGE
+// =============================================
+function renderScanPage() {
+    const user = Session.getUser();
+    const clients = DB.getAll(DB.KEYS.CLIENTS).filter(c => c.estado === 'ACTIVO');
+    const options = clients.map(c => {
+        const qr = DB.getAll(DB.KEYS.QRS).find(q => q.clienteId === c.id);
+        return `<option value="${c.id}">${c.nombre} — ${qr ? qr.codigoQR : 'Sin QR'}</option>`;
+    }).join('');
+
+    return `
+    ${renderHeader(user)}
+    <div class="main-content page-enter">
+      <button class="back-btn" onclick="App.navigate('dashboard')">← Volver al dashboard</button>
+
+      <div class="scan-simulation">
+        <div class="scan-viewfinder">
+          <span class="camera-icon">📷</span>
+        </div>
+        <p class="scan-label">Apunta la cámara al código QR del cliente</p>
+      </div>
+
+      <div class="scan-client-select">
+        <h4>🧪 Demo: Selecciona un cliente para simular escaneo</h4>
+        <div class="form-group mt-2">
+          <select class="form-input" id="scan-client-select">
+            <option value="">— Seleccionar cliente —</option>
+            ${options}
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full mt-2" onclick="App.handleScan()">
+          ⚡ Simular Escaneo
+        </button>
+      </div>
+    </div>`;
+}
+
+// =============================================
+// VENTA PAGE
+// =============================================
+function renderVentaPage(clienteId) {
+    const user = Session.getUser();
+    const cliente = DB.findById(DB.KEYS.CLIENTS, parseInt(clienteId));
+    if (!cliente) return renderNotFound();
+
+    return `
+    ${renderHeader(user)}
+    <div class="main-content page-enter">
+      <button class="back-btn" onclick="App.navigate('scan')">← Volver a escanear</button>
+
+      <div class="client-header">
+        <h2>📍 ${cliente.nombre}</h2>
+        <div class="client-address">📌 ${cliente.direccion}</div>
+        ${cliente.referencia ? `<div class="text-sm text-muted mt-1">Ref: ${cliente.referencia}</div>` : ''}
+      </div>
+
+      <div class="flex flex-col gap-3" id="counters-area">
+        <div class="product-counter" id="counter-agua">
+          <div class="counter-label">💧 Garrafones de Agua</div>
+          <div class="counter-controls">
+            <button class="counter-btn minus" onclick="App.updateCounter('agua', -1)">−</button>
+            <div class="counter-value" id="val-agua">0</div>
+            <button class="counter-btn" onclick="App.updateCounter('agua', 1)">+</button>
+          </div>
+        </div>
+
+        <div class="product-counter" id="counter-hielo">
+          <div class="counter-label">🧊 Bolsas de Hielo</div>
+          <div class="counter-controls">
+            <button class="counter-btn minus" onclick="App.updateCounter('hielo', -1)">−</button>
+            <div class="counter-value" id="val-hielo">0</div>
+            <button class="counter-btn" onclick="App.updateCounter('hielo', 1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="checkbox-group mt-3" onclick="App.toggleNoCompro()">
+        <input type="checkbox" id="no-compro">
+        <label for="no-compro">🚫 No compró (registrar solo visita)</label>
+      </div>
+
+      <div class="form-group mt-3">
+        <label class="form-label">📝 Notas (opcional)</label>
+        <textarea class="form-input" id="venta-notas" placeholder="Ej: Cliente pide visita el viernes"></textarea>
+      </div>
+
+      <button class="btn btn-success btn-lg btn-full mt-3" onclick="App.confirmarVenta(${cliente.id})" id="btn-confirmar">
+        ✅ Confirmar Registro
+      </button>
+    </div>`;
+}
+
+// =============================================
+// SUCCESS PAGE
+// =============================================
+function renderSuccessPage(movimiento) {
+    const user = Session.getUser();
+    const cliente = DB.findById(DB.KEYS.CLIENTS, movimiento.clienteId);
+    const isVenta = movimiento.tipo === 'VENTA';
+
+    return `
+    ${renderHeader(user)}
+    <div class="main-content">
+      <div class="success-screen">
+        <div class="success-icon">✓</div>
+        <h2>${isVenta ? '¡Venta Registrada!' : '¡Visita Registrada!'}</h2>
+        <p class="text-muted">El registro se guardó exitosamente</p>
+
+        <div class="success-details">
+          <div class="detail-row">
+            <span class="detail-label">Cliente</span>
+            <span class="detail-value">${cliente ? cliente.nombre : ''}</span>
+          </div>
+          ${isVenta ? `
+          <div class="detail-row">
+            <span class="detail-label">Agua</span>
+            <span class="detail-value">${movimiento.cantidadAgua} garrafones</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Hielo</span>
+            <span class="detail-value">${movimiento.cantidadHielo} bolsas</span>
+          </div>` : ''}
+          <div class="detail-row">
+            <span class="detail-label">Tipo</span>
+            <span class="detail-value">${isVenta ? '🟢 Venta' : '🟡 Sin venta'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Hora</span>
+            <span class="detail-value">${formatTime(movimiento.timestamp)}</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-lg btn-full mt-4" onclick="App.navigate('dashboard')">
+          Volver al Dashboard
+        </button>
+      </div>
+    </div>`;
+}
+
+// =============================================
+// ADMIN PANEL
+// =============================================
+function renderAdminPanel(tab = 'clientes') {
+    const user = Session.getUser();
+    const tabs = [
+        { id: 'clientes', label: '👥 Clientes', icon: '👥' },
+        { id: 'movimientos', label: '📋 Movimientos', icon: '📋' },
+        { id: 'reportes', label: '📊 Reportes', icon: '📊' },
+    ];
+
+    const tabButtons = tabs.map(t =>
+        `<button class="admin-tab ${t.id === tab ? 'active' : ''}" onclick="App.navigate('admin/${t.id}')">${t.label}</button>`
+    ).join('');
+
+    let content = '';
+    if (tab === 'clientes') content = renderAdminClientes();
+    else if (tab === 'movimientos') content = renderAdminMovimientos();
+    else if (tab === 'reportes') content = renderAdminReportes();
+
+    return `
+    ${renderHeader(user)}
+    <div class="main-content page-enter">
+      <div class="admin-tabs">${tabButtons}</div>
+      ${content}
+    </div>`;
+}
+
+// =============================================
+// ADMIN — CLIENTES TAB
+// =============================================
+function renderAdminClientes() {
+    const clients = DB.getAll(DB.KEYS.CLIENTS);
+
+    const rows = clients.map(c => {
+        const qr = DB.getAll(DB.KEYS.QRS).find(q => q.clienteId === c.id);
+        const movs = DB.getAll(DB.KEYS.MOVEMENTS).filter(m => m.clienteId === c.id);
+        return `
+      <tr>
+        <td><strong>${c.nombre}</strong></td>
+        <td class="text-sm">${c.direccion}</td>
+        <td><span class="badge ${c.estado === 'ACTIVO' ? 'badge-success' : 'badge-error'}">${c.estado}</span></td>
+        <td class="text-center">${movs.length}</td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="App.showClientQR(${c.id})" title="Ver QR">📱</button>
+          <button class="btn btn-ghost btn-sm" onclick="App.showClientDetail(${c.id})" title="Ver detalle">👁️</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    return `
+    <div class="search-bar">
+      <input type="text" class="form-input" placeholder="🔍 Buscar cliente..." id="search-clients" oninput="App.filterClients()">
+      <button class="btn btn-primary" onclick="App.showNewClientForm()">+ Nuevo</button>
+    </div>
+    <div class="card">
+      <div class="table-container">
+        <table class="data-table" id="clients-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Dirección</th>
+              <th>Estado</th>
+              <th>Visitas</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// =============================================
+// ADMIN — MOVIMIENTOS TAB
+// =============================================
+function renderAdminMovimientos() {
+    const movements = DB.getAll(DB.KEYS.MOVEMENTS)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const clients = DB.getAll(DB.KEYS.CLIENTS);
+    const operators = DB.getAll(DB.KEYS.USERS).filter(u => u.rol === 'OPERADOR');
+
+    const clientOpts = clients.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    const opOpts = operators.map(o => `<option value="${o.id}">${o.nombre}</option>`).join('');
+
+    const rows = movements.map(m => {
+        const isVenta = m.tipo === 'VENTA';
+        return `
+      <tr>
+        <td class="text-sm">${formatDateTime(m.timestamp)}</td>
+        <td><strong>${getClientName(m.clienteId)}</strong></td>
+        <td>${getOperadorName(m.operadorId)}</td>
+        <td class="text-center">${m.cantidadAgua}</td>
+        <td class="text-center">${m.cantidadHielo}</td>
+        <td>
+          <span class="badge ${isVenta ? 'badge-success' : 'badge-warning'}">${isVenta ? 'Venta' : 'Sin venta'}</span>
+          ${m.fueEditado ? '<span class="badge badge-info" style="margin-left:4px">Editado</span>' : ''}
+        </td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="App.showEditMovimiento(${m.id})">✏️</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    return `
+    <div class="filters-row">
+      <select class="form-input" id="filter-client" onchange="App.filterMovimientos()">
+        <option value="">Todos los clientes</option>
+        ${clientOpts}
+      </select>
+      <select class="form-input" id="filter-operador" onchange="App.filterMovimientos()">
+        <option value="">Todos los operadores</option>
+        ${opOpts}
+      </select>
+      <select class="form-input" id="filter-tipo" onchange="App.filterMovimientos()">
+        <option value="">Todos los tipos</option>
+        <option value="VENTA">Ventas</option>
+        <option value="VISITA_SIN_VENTA">Sin venta</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="table-container">
+        <table class="data-table" id="movimientos-table">
+          <thead>
+            <tr>
+              <th>Fecha/Hora</th>
+              <th>Cliente</th>
+              <th>Operador</th>
+              <th>💧</th>
+              <th>🧊</th>
+              <th>Tipo</th>
+              <th>Acc.</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// =============================================
+// ADMIN — REPORTES TAB
+// =============================================
+function renderAdminReportes() {
+    const movements = DB.getAll(DB.KEYS.MOVEMENTS);
+    const today = new Date().toDateString();
+    const todayMoves = movements.filter(m => new Date(m.timestamp).toDateString() === today);
+    const allAgua = movements.reduce((s, m) => s + (m.cantidadAgua || 0), 0);
+    const allHielo = movements.reduce((s, m) => s + (m.cantidadHielo || 0), 0);
+    const todayAgua = todayMoves.reduce((s, m) => s + (m.cantidadAgua || 0), 0);
+    const todayHielo = todayMoves.reduce((s, m) => s + (m.cantidadHielo || 0), 0);
+
+    // Per-operator stats
+    const operators = DB.getAll(DB.KEYS.USERS).filter(u => u.rol === 'OPERADOR');
+    const opStats = operators.map(op => {
+        const opMoves = movements.filter(m => m.operadorId === op.id);
+        return `
+      <tr>
+        <td><strong>${op.nombre}</strong></td>
+        <td class="text-center">${opMoves.length}</td>
+        <td class="text-center">${opMoves.filter(m => m.tipo === 'VENTA').length}</td>
+        <td class="text-center">${opMoves.reduce((s, m) => s + (m.cantidadAgua || 0), 0)}</td>
+        <td class="text-center">${opMoves.reduce((s, m) => s + (m.cantidadHielo || 0), 0)}</td>
+      </tr>`;
+    }).join('');
+
+    // Top clients
+    const clients = DB.getAll(DB.KEYS.CLIENTS);
+    const topClients = clients.map(c => {
+        const cMoves = movements.filter(m => m.clienteId === c.id && m.tipo === 'VENTA');
+        return { ...c, totalAgua: cMoves.reduce((s, m) => s + (m.cantidadAgua || 0), 0), visitas: cMoves.length };
+    }).sort((a, b) => b.totalAgua - a.totalAgua).slice(0, 5);
+
+    const topRows = topClients.map((c, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><strong>${c.nombre}</strong></td>
+      <td class="text-center">${c.visitas}</td>
+      <td class="text-center">${c.totalAgua}</td>
+    </tr>`).join('');
+
+    return `
+    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value">${movements.length}</div><div class="stat-label">Total Visitas</div></div>
+      <div class="stat-card"><div class="stat-icon">💧</div><div class="stat-value">${allAgua}</div><div class="stat-label">Garrafones Total</div></div>
+      <div class="stat-card"><div class="stat-icon">🧊</div><div class="stat-value">${allHielo}</div><div class="stat-label">Hielo Total</div></div>
+      <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-value">${todayMoves.length}</div><div class="stat-label">Visitas Hoy</div></div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header"><h3>👷 Desempeño por Operador</h3></div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead><tr><th>Operador</th><th>Visitas</th><th>Ventas</th><th>💧</th><th>🧊</th></tr></thead>
+          <tbody>${opStats}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header"><h3>🏆 Top Clientes (por garrafones)</h3></div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Cliente</th><th>Visitas</th><th>💧 Total</th></tr></thead>
+          <tbody>${topRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// =============================================
+// NOT FOUND
+// =============================================
+function renderNotFound() {
+    return `
+    <div class="main-content">
+      <div class="empty-state" style="padding:5rem 1rem">
+        <div class="empty-icon">🔍</div>
+        <h4>Página no encontrada</h4>
+        <p class="text-muted mb-4">La ruta solicitada no existe</p>
+        <button class="btn btn-primary" onclick="App.navigate('dashboard')">Ir al inicio</button>
+      </div>
+    </div>`;
+}
