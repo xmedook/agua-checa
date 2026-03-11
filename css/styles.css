@@ -1709,3 +1709,25 @@ select.form-input {
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
 }
+
+/* === BLOCK COPY/PASTE ON TABLES === */
+.data-table,
+.activity-list,
+.route-map,
+.table-container {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.data-table td,
+.activity-item,
+.route-item {
+  position: relative;
+}
+
+/* Show cursor not-allowed on hover for copy attempt */
+.data-table:hover td {
+  cursor: default;
+}

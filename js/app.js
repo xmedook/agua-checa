@@ -119,6 +119,23 @@ const App = {
             return;
         }
 
+        // Restricción horaria para operadores
+        if (user.rol === 'OPERADOR') {
+            const now = new Date();
+            const hora = now.getHours();
+            const dia = now.getDay();
+            
+            // Horario laboral: Lun-Sáb, 6am-9pm
+            if (dia === 0) {
+                Toast.show('⛔ Los operadores no pueden acceder los domingos', 'error');
+                return;
+            }
+            if (hora < 6 || hora >= 21) {
+                Toast.show('⛔ Horario no permitido. Acceso: Lun-Sáb, 6:00-21:00 hrs', 'error');
+                return;
+            }
+        }
+
         Session.login(user);
         Toast.show(`¡Bienvenido, ${user.nombre}!`, 'success');
         this.navigate(user.rol === 'ADMIN' ? 'admin/clientes' : 'dashboard');
@@ -207,6 +224,7 @@ const App = {
         const user = Session.getUser();
         const notas = document.getElementById('venta-notas')?.value || '';
         const qr = DB.getAll(DB.KEYS.QRS).find(q => q.clienteId === clienteId);
+        const fueraDeRuta = document.getElementById('fuera-de-ruta')?.checked || false;
 
         // Validar motivo si es visita sin venta
         if (this.noCompro && !this.motivoNoVenta) {
@@ -225,6 +243,7 @@ const App = {
             notas: notas,
             motivoNoVenta: this.noCompro ? this.motivoNoVenta : null,
             codigoQR: qr ? qr.codigoQR : '',
+            fueraDeRuta: fueraDeRuta,
             fueEditado: false,
         };
 
