@@ -1567,3 +1567,56 @@ select.form-input {
   color: var(--gray-700);
   border-left: 3px solid var(--warning-500);
 }
+
+/* === ORDEN DE RUTA === */
+.orden-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.orden-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--gray-50);
+  border-radius: 0.5rem;
+  border: 1px solid var(--gray-200);
+}
+
+.orden-num {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-100);
+  color: var(--primary-700);
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.orden-nombre {
+  font-weight: 600;
+  font-size: 0.875rem;
+  min-width: 150px;
+}
+
+.orden-dir {
+  flex: 1;
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orden-acciones {
+  display: flex;
+  gap: 0.25rem;
+}

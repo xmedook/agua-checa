@@ -717,6 +717,59 @@ const App = {
         this.navigate('admin/rutas');
     },
 
+    showOrdenarRuta(rutaId) {
+        const ruta = DB.findById(DB.KEYS.RUTAS, rutaId);
+        if (!ruta) return;
+        
+        const clientesOrden = ruta.orden || ruta.clientes || [];
+        const clientes = clientesOrden.map(id => DB.findById(DB.KEYS.CLIENTS, id)).filter(Boolean);
+        
+        const itemsHtml = clientes.map((c, i) => `
+            <div class="orden-item" data-index="${i}">
+                <span class="orden-num">${i + 1}</span>
+                <span class="orden-nombre">${c.nombre}</span>
+                <span class="orden-dir">${c.direccion}</span>
+                <div class="orden-acciones">
+                    <button class="btn btn-ghost btn-sm" onclick="App.moverClienteRuta(${rutaId}, ${i}, -1)" ${i === 0 ? 'disabled' : ''}>⬆️</button>
+                    <button class="btn btn-ghost btn-sm" onclick="App.moverClienteRuta(${rutaId}, ${i}, 1)" ${i === clientes.length - 1 ? 'disabled' : ''}>⬇️</button>
+                </div>
+            </div>
+        `).join('');
+
+        this.openModal(`
+      <div class="modal-header">
+        <h3>🔢 Ordenar Clientes — ${ruta.nombre}</h3>
+        <button class="modal-close" onclick="App.closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-sm text-muted mb-3">Usa las flechas para cambiar el orden de visita</p>
+        <div class="orden-list" id="orden-list">${itemsHtml}</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="App.closeModal()">Cerrar</button>
+      </div>
+    `);
+    },
+
+    moverClienteRuta(rutaId, index, direccion) {
+        const ruta = DB.findById(DB.KEYS.RUTAS, rutaId);
+        if (!ruta) return;
+        
+        const orden = [...(ruta.orden || ruta.clientes || [])];
+        const newIndex = index + direccion;
+        
+        if (newIndex < 0 || newIndex >= orden.length) return;
+        
+        // Intercambiar
+        [orden[index], orden[newIndex]] = [orden[newIndex], orden[index]];
+        
+        DB.update(DB.KEYS.RUTAS, rutaId, { orden });
+        
+        // Recargar el modal
+        this.showOrdenarRuta(rutaId);
+        Toast.show('Orden actualizado', 'success');
+    },
+
     deleteRuta(rutaId) {
         if (!confirm('¿Eliminar esta ruta?')) return;
         
@@ -825,6 +878,14 @@ const App = {
             
             row.style.display = show ? '' : 'none';
         });
+    },
+
+    actualizarReportes() {
+        const periodo = document.getElementById('reporte-periodo')?.value || 'today';
+        const contenido = document.getElementById('reportes-contenido');
+        if (contenido) {
+            contenido.innerHTML = renderReportesContenido(periodo);
+        }
     },
 
     filterMovimientos() {

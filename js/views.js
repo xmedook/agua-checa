@@ -39,7 +39,7 @@ function renderLogin() {
       <div class="login-card">
         <div class="login-logo">
           <span class="logo-icon">💧</span>
-          <h1>AquaTrack v0.3</h1>
+          <h1>AquaTrack v0.4</h1>
           <p>Sistema de Logística y Ventas</p>
         </div>
         <form id="login-form">
@@ -77,7 +77,7 @@ function renderHeader(user) {
     <header class="header">
       <div class="header-brand">
         <span class="brand-icon">💧</span>
-        AquaTrack v0.3
+        AquaTrack v0.4
       </div>
       <div class="header-user">
         <div style="text-align:right">
@@ -465,6 +465,7 @@ function renderAdminRutas() {
         <td class="text-center">${clientesCount}</td>
         <td><span class="badge ${r.activa ? 'badge-success' : 'badge-error'}">${r.activa ? 'Activa' : 'Inactiva'}</span></td>
         <td>
+          <button class="btn btn-ghost btn-sm" onclick="App.showOrdenarRuta(${r.id})" title="Ordenar clientes">🔢</button>
           <button class="btn btn-ghost btn-sm" onclick="App.showEditRuta(${r.id})" title="Editar">✏️</button>
           <button class="btn btn-ghost btn-sm" onclick="App.deleteRuta(${r.id})" title="Eliminar">🗑️</button>
         </td>
@@ -566,15 +567,48 @@ function renderAdminMovimientos() {
 // ADMIN — REPORTES TAB
 // =============================================
 function renderAdminReportes() {
-    const movements = DB.getAll(DB.KEYS.MOVEMENTS);
-    const today = new Date().toDateString();
-    const todayMoves = movements.filter(m => new Date(m.timestamp).toDateString() === today);
+    return `
+    <div class="filters-row">
+      <select class="form-input" id="reporte-periodo" onchange="App.actualizarReportes()">
+        <option value="all">Todo el tiempo</option>
+        <option value="today" selected>Hoy</option>
+        <option value="week">Última semana</option>
+        <option value="month">Último mes</option>
+        <option value="mes-actual">Mes en curso</option>
+      </select>
+    </div>
+    <div id="reportes-contenido">
+      ${renderReportesContenido('today')}
+    </div>`;
+}
+
+function renderReportesContenido(periodo) {
+    const allMovements = DB.getAll(DB.KEYS.MOVEMENTS);
+    
+    // Filtrar por periodo
+    let movements = allMovements;
+    const now = new Date();
+    
+    if (periodo === 'today') {
+        const today = now.toDateString();
+        movements = allMovements.filter(m => new Date(m.timestamp).toDateString() === today);
+    } else if (periodo === 'week') {
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        movements = allMovements.filter(m => new Date(m.timestamp) >= weekAgo);
+    } else if (periodo === 'month') {
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        movements = allMovements.filter(m => new Date(m.timestamp) >= monthAgo);
+    } else if (periodo === 'mes-actual') {
+        const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
+        movements = allMovements.filter(m => new Date(m.timestamp) >= inicioMes);
+    }
+
+    const totalVisitas = movements.length;
+    const totalVentas = movements.filter(m => m.tipo === 'VENTA').length;
     const allAgua = movements.reduce((s, m) => s + (m.cantidadAgua || 0), 0);
     const allHielo = movements.reduce((s, m) => s + (m.cantidadHielo || 0), 0);
-    const todayAgua = todayMoves.reduce((s, m) => s + (m.cantidadAgua || 0), 0);
-    const todayHielo = todayMoves.reduce((s, m) => s + (m.cantidadHielo || 0), 0);
 
-    // Per-operator stats
+    // Por operador
     const operators = DB.getAll(DB.KEYS.USERS).filter(u => u.rol === 'OPERADOR');
     const opStats = operators.map(op => {
         const opMoves = movements.filter(m => m.operadorId === op.id);
@@ -588,7 +622,7 @@ function renderAdminReportes() {
       </tr>`;
     }).join('');
 
-    // Top clients
+    // Top clientes
     const clients = DB.getAll(DB.KEYS.CLIENTS);
     const topClients = clients.map(c => {
         const cMoves = movements.filter(m => m.clienteId === c.id && m.tipo === 'VENTA');
@@ -605,10 +639,10 @@ function renderAdminReportes() {
 
     return `
     <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
-      <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value">${movements.length}</div><div class="stat-label">Total Visitas</div></div>
-      <div class="stat-card"><div class="stat-icon">💧</div><div class="stat-value">${allAgua}</div><div class="stat-label">Garrafones Total</div></div>
-      <div class="stat-card"><div class="stat-icon">🧊</div><div class="stat-value">${allHielo}</div><div class="stat-label">Hielo Total</div></div>
-      <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-value">${todayMoves.length}</div><div class="stat-label">Visitas Hoy</div></div>
+      <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value">${totalVisitas}</div><div class="stat-label">Visitas</div></div>
+      <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value">${totalVentas}</div><div class="stat-label">Ventas</div></div>
+      <div class="stat-card"><div class="stat-icon">💧</div><div class="stat-value">${allAgua}</div><div class="stat-label">Garrafones</div></div>
+      <div class="stat-card"><div class="stat-icon">🧊</div><div class="stat-value">${allHielo}</div><div class="stat-label">Hielo</div></div>
     </div>
 
     <div class="card mt-4">
