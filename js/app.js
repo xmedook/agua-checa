@@ -6,6 +6,7 @@ const App = {
     // State
     counters: { agua: 0, hielo: 0 },
     noCompro: false,
+    motivoNoVenta: null,
     lastMovimiento: null,
 
     // ==========================================
@@ -55,6 +56,7 @@ const App = {
             case 'venta':
                 this.counters = { agua: 0, hielo: 0 };
                 this.noCompro = false;
+                this.motivoNoVenta = null;
                 html = renderVentaPage(sub);
                 break;
             case 'success':
@@ -166,8 +168,12 @@ const App = {
         if (!cb) return;
         this.noCompro = cb.checked;
         const area = document.getElementById('counters-area');
+        const motivosContainer = document.getElementById('motivos-container');
         if (area) {
             area.classList.toggle('counter-disabled', this.noCompro);
+        }
+        if (motivosContainer) {
+            motivosContainer.classList.toggle('hidden', !this.noCompro);
         }
         if (this.noCompro) {
             this.counters = { agua: 0, hielo: 0 };
@@ -176,6 +182,19 @@ const App = {
             if (elA) elA.textContent = '0';
             if (elH) elH.textContent = '0';
         }
+    },
+
+    // ==========================================
+    // MOTIVO NO VENTA
+    // ==========================================
+    selectMotivo(motivoId) {
+        this.motivoNoVenta = motivoId;
+        // Update UI
+        document.querySelectorAll('.motivo-option').forEach(el => {
+            el.classList.remove('selected');
+        });
+        const selected = document.querySelector(`[data-motivo="${motivoId}"]`);
+        if (selected) selected.classList.add('selected');
     },
 
     // ==========================================
@@ -189,6 +208,13 @@ const App = {
         const notas = document.getElementById('venta-notas')?.value || '';
         const qr = DB.getAll(DB.KEYS.QRS).find(q => q.clienteId === clienteId);
 
+        // Validar motivo si es visita sin venta
+        if (this.noCompro && !this.motivoNoVenta) {
+            Toast.show('Selecciona un motivo de no compra', 'warning');
+            if (btn) btn.disabled = false;
+            return;
+        }
+
         const movimiento = {
             clienteId: clienteId,
             operadorId: user.id,
@@ -197,6 +223,7 @@ const App = {
             cantidadHielo: this.counters.hielo,
             tipo: this.noCompro ? 'VISITA_SIN_VENTA' : 'VENTA',
             notas: notas,
+            motivoNoVenta: this.noCompro ? this.motivoNoVenta : null,
             codigoQR: qr ? qr.codigoQR : '',
             fueEditado: false,
         };
@@ -362,6 +389,178 @@ const App = {
         // Refresh and show QR
         this.navigate('admin/clientes');
         setTimeout(() => this.showClientQR(client.id), 300);
+    },
+
+    // ==========================================
+    // ADMIN — RUTAS
+    // ==========================================
+    showNewRutaForm() {
+        const operators = DB.getAll(DB.KEYS.USERS).filter(u => u.rol === 'OPERADOR');
+        const clients = DB.getAll(DB.KEYS.CLIENTS).filter(c => c.estado === 'ACTIVO');
+        
+        const opOptions = operators.map(o => 
+            `<label class="checkbox-option"><input type="checkbox" value="${o.id}" id="new-ruta-ops"> ${o.nombre}</label>`
+        ).join('');
+        
+        const clientOptions = clients.map(c => 
+            `<label class="checkbox-option"><input type="checkbox" value="${c.id}" class="client-checkbox"> ${c.nombre}</label>`
+        ).join('');
+
+        this.openModal(`
+      <div class="modal-header">
+        <h3>🛣️ Nueva Ruta</h3>
+        <button class="modal-close" onclick="App.closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" class="form-input" id="new-ruta-nombre" placeholder="Ej: Ruta Norte">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción</label>
+          <input type="text" class="form-input" id="new-ruta-desc" placeholder="Zona o descripción">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Operadores asignados</label>
+          <div class="checkbox-group-vertical">${opOptions || 'No hay operadores'}</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Clientes en la ruta</label>
+          <div class="checkbox-group-vertical" style="max-height:150px;overflow-y:auto">${clientOptions || 'No hay clientes'}</div>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="new-ruta-activa" checked>
+          <label for="new-ruta-activa">Ruta activa</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="App.closeModal()">Cancelar</button>
+        <button class="btn btn-success" onclick="App.saveNewRuta()">Crear Ruta</button>
+      </div>
+    `);
+    },
+
+    saveNewRuta() {
+        const nombre = document.getElementById('new-ruta-nombre')?.value.trim();
+        if (!nombre) {
+            Toast.show('El nombre es obligatorio', 'warning');
+            return;
+        }
+
+        const desc = document.getElementById('new-ruta-desc')?.value.trim() || '';
+        const activa = document.getElementById('new-ruta-activa')?.checked || false;
+        
+        // Get selected operators
+        const opCheckboxes = document.querySelectorAll('#new-ruta-ops:checked');
+        const operadoresAsignados = Array.from(opCheckboxes).map(el => parseInt(el.value));
+        
+        // Get selected clients
+        const clientCheckboxes = document.querySelectorAll('.client-checkbox:checked');
+        const clientes = Array.from(clientCheckboxes).map(el => parseInt(el.value));
+
+        const ruta = DB.add(DB.KEYS.RUTAS, {
+            nombre,
+            descripcion: desc,
+            operadoresAsignados,
+            clientes,
+            orden: [...clientes],
+            activa,
+        });
+
+        this.closeModal();
+        Toast.show(`Ruta "${nombre}" creada`, 'success');
+        this.navigate('admin/rutas');
+    },
+
+    showEditRuta(rutaId) {
+        const ruta = DB.findById(DB.KEYS.RUTAS, rutaId);
+        if (!ruta) return;
+
+        const operators = DB.getAll(DB.KEYS.USERS).filter(u => u.rol === 'OPERADOR');
+        const clients = DB.getAll(DB.KEYS.CLIENTS).filter(c => c.estado === 'ACTIVO');
+        
+        const opOptions = operators.map(o => {
+            const checked = ruta.operadoresAsignados?.includes(o.id) ? 'checked' : '';
+            return `<label class="checkbox-option"><input type="checkbox" value="${o.id}" class="edit-ruta-op" ${checked}> ${o.nombre}</label>`;
+        }).join('');
+        
+        const clientOptions = clients.map(c => {
+            const checked = ruta.clientes?.includes(c.id) ? 'checked' : '';
+            return `<label class="checkbox-option"><input type="checkbox" value="${c.id}" class="edit-ruta-client" ${checked}> ${c.nombre}</label>`;
+        }).join('');
+
+        this.openModal(`
+      <div class="modal-header">
+        <h3>✏️ Editar Ruta</h3>
+        <button class="modal-close" onclick="App.closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" class="form-input" id="edit-ruta-nombre" value="${ruta.nombre}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción</label>
+          <input type="text" class="form-input" id="edit-ruta-desc" value="${ruta.descripcion || ''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Operadores asignados</label>
+          <div class="checkbox-group-vertical">${opOptions || 'No hay operadores'}</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Clientes en la ruta</label>
+          <div class="checkbox-group-vertical" style="max-height:150px;overflow-y:auto">${clientOptions || 'No hay clientes'}</div>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="edit-ruta-activa" ${ruta.activa ? 'checked' : ''}>
+          <label for="edit-ruta-activa">Ruta activa</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="App.closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="App.saveEditRuta(${ruta.id})">Guardar Cambios</button>
+      </div>
+    `);
+    },
+
+    saveEditRuta(rutaId) {
+        const nombre = document.getElementById('edit-ruta-nombre')?.value.trim();
+        if (!nombre) {
+            Toast.show('El nombre es obligatorio', 'warning');
+            return;
+        }
+
+        const desc = document.getElementById('edit-ruta-desc')?.value.trim() || '';
+        const activa = document.getElementById('edit-ruta-activa')?.checked || false;
+        
+        const opCheckboxes = document.querySelectorAll('.edit-ruta-op:checked');
+        const operadoresAsignados = Array.from(opCheckboxes).map(el => parseInt(el.value));
+        
+        const clientCheckboxes = document.querySelectorAll('.edit-ruta-client:checked');
+        const clientes = Array.from(clientCheckboxes).map(el => parseInt(el.value));
+
+        DB.update(DB.KEYS.RUTAS, rutaId, {
+            nombre,
+            descripcion: desc,
+            operadoresAsignados,
+            clientes,
+            orden: [...clientes],
+            activa,
+        });
+
+        this.closeModal();
+        Toast.show('Ruta actualizada', 'success');
+        this.navigate('admin/rutas');
+    },
+
+    deleteRuta(rutaId) {
+        if (!confirm('¿Eliminar esta ruta?')) return;
+        
+        const rutas = DB.getAll(DB.KEYS.RUTAS).filter(r => r.id !== rutaId);
+        DB.set(DB.KEYS.RUTAS, rutas);
+        
+        Toast.show('Ruta eliminada', 'success');
+        this.navigate('admin/rutas');
     },
 
     // ==========================================

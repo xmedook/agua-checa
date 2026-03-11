@@ -105,6 +105,33 @@ function renderDashboard() {
     const todayHielo = todayMoves.reduce((s, m) => s + (m.cantidadHielo || 0), 0);
     const todayVentas = todayMoves.filter(m => m.tipo === 'VENTA').length;
 
+    // Get today's route for this operator
+    const rutas = DB.getAll(DB.KEYS.RUTAS).filter(r => r.activa && r.operadoresAsignados?.includes(user.id));
+    let routeHtml = '';
+    if (rutas.length > 0) {
+        const ruta = rutas[0];
+        const routeClients = ruta.orden?.map(id => DB.findById(DB.KEYS.CLIENTS, id)).filter(Boolean) || [];
+        const visitedIds = todayMoves.map(m => m.clienteId);
+        routeHtml = `
+      <div class="activity-list mt-4">
+        <div class="section-title">🛣️ ${ruta.nombre} — Clientes del día</div>
+        <div class="card">
+          ${routeClients.length === 0 ? '<div class="empty-state"><p class="text-muted">Sin clientes asignados</p></div>' : routeClients.map((c, i) => {
+            const visited = visitedIds.includes(c.id);
+            return `
+            <div class="route-item ${visited ? 'visited' : ''}">
+              <div class="route-number">${i + 1}</div>
+              <div class="route-info">
+                <div class="route-name">${c.nombre}</div>
+                <div class="route-address">${c.direccion}</div>
+              </div>
+              <div class="route-status">${visited ? '✅' : '⭕'}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }
+
     const recentItems = movements.slice(0, 8).map(m => {
         const isVenta = m.tipo === 'VENTA';
         return `
@@ -246,6 +273,18 @@ function renderVentaPage(clienteId) {
         <label for="no-compro">🚫 No compró (registrar solo visita)</label>
       </div>
 
+      <div class="motivos-container mt-3 hidden" id="motivos-container">
+        <label class="form-label">📋 Selecciona el motivo</label>
+        <div class="motivos-grid" id="motivos-grid">
+          ${MOTIVOS_NO_VENTA.map(m => `
+            <div class="motivo-option" data-motivo="${m.id}" onclick="App.selectMotivo('${m.id}')">
+              <span class="motivo-icon">${m.icon}</span>
+              <span class="motivo-label">${m.label}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
       <div class="form-group mt-3">
         <label class="form-label">📝 Notas (opcional)</label>
         <textarea class="form-input" id="venta-notas" placeholder="Ej: Cliente pide visita el viernes"></textarea>
@@ -311,6 +350,7 @@ function renderAdminPanel(tab = 'clientes') {
     const user = Session.getUser();
     const tabs = [
         { id: 'clientes', label: '👥 Clientes', icon: '👥' },
+        { id: 'rutas', label: '🛣️ Rutas', icon: '🛣️' },
         { id: 'movimientos', label: '📋 Movimientos', icon: '📋' },
         { id: 'reportes', label: '📊 Reportes', icon: '📊' },
     ];
@@ -321,6 +361,7 @@ function renderAdminPanel(tab = 'clientes') {
 
     let content = '';
     if (tab === 'clientes') content = renderAdminClientes();
+    else if (tab === 'rutas') content = renderAdminRutas();
     else if (tab === 'movimientos') content = renderAdminMovimientos();
     else if (tab === 'reportes') content = renderAdminReportes();
 
@@ -372,6 +413,57 @@ function renderAdminClientes() {
             </tr>
           </thead>
           <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// =============================================
+// ADMIN — RUTAS TAB
+// =============================================
+function renderAdminRutas() {
+    const rutas = DB.getAll(DB.KEYS.RUTAS);
+    const operators = DB.getAll(DB.KEYS.USERS).filter(u => u.rol === 'OPERADOR');
+
+    const rows = rutas.map(r => {
+        const ops = r.operadoresAsignados.map(id => {
+            const op = DB.findById(DB.KEYS.USERS, id);
+            return op ? op.nombre : '';
+        }).filter(Boolean).join(', ');
+        const clientesCount = r.clientes ? r.clientes.length : 0;
+        return `
+      <tr>
+        <td><strong>${r.nombre}</strong></td>
+        <td class="text-sm">${r.descripcion || '—'}</td>
+        <td class="text-sm">${ops || 'Sin asignar'}</td>
+        <td class="text-center">${clientesCount}</td>
+        <td><span class="badge ${r.activa ? 'badge-success' : 'badge-error'}">${r.activa ? 'Activa' : 'Inactiva'}</span></td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="App.showEditRuta(${r.id})" title="Editar">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="App.deleteRuta(${r.id})" title="Eliminar">🗑️</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    return `
+    <div class="search-bar">
+      <div></div>
+      <button class="btn btn-primary" onclick="App.showNewRutaForm()">+ Nueva Ruta</button>
+    </div>
+    <div class="card">
+      <div class="table-container">
+        <table class="data-table" id="rutas-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Operadores</th>
+              <th>Clientes</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="6" class="text-center text-muted">No hay rutas creadas</td></tr>'}</tbody>
         </table>
       </div>
     </div>`;

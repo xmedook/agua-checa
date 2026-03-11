@@ -1329,6 +1329,116 @@ select.form-input {
 
 .back-btn:hover { color: var(--primary-600); }
 
+/* === MOTIVOS NO VENTA === */
+.motivos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.motivo-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  background: var(--gray-50);
+  border: 2px solid var(--gray-200);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.motivo-option:hover {
+  border-color: var(--primary-300);
+  background: var(--primary-50);
+}
+
+.motivo-option.selected {
+  border-color: var(--primary-600);
+  background: var(--primary-100);
+}
+
+.motivo-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.motivo-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+/* === CHECKBOX GROUP VERTICAL (RUTAS) === */
+.checkbox-group-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  cursor: pointer;
+}
+
+.checkbox-option input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--primary-600);
+}
+
+/* === RUTA DEL DÍA === */
+.route-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.route-item:last-child { border-bottom: none; }
+
+.route-item.visited { opacity: 0.6; }
+
+.route-number {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-100);
+  color: var(--primary-700);
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.route-info { flex: 1; min-width: 0; }
+
+.route-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.route-address {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.route-status { font-size: 1.25rem; }
+
 /* === PAGINATION === */
 .pagination {
   display: flex;

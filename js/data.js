@@ -9,6 +9,7 @@ const DB = {
     QRS: 'aquatrack_qrs',
     MOVEMENTS: 'aquatrack_movements',
     CORRECTIONS: 'aquatrack_corrections',
+    RUTAS: 'aquatrack_rutas',
     SESSION: 'aquatrack_session',
   },
 
@@ -112,8 +113,41 @@ const DB = {
     this.set(this.KEYS.CORRECTIONS, [
       { id: 1, movimientoId: 4, adminId: 3, datosAntes: { cantidadAgua: 5 }, datosDespues: { cantidadAgua: 3 }, motivo: 'Error de captura confirmado por cliente', timestamp: new Date().toISOString() },
     ]);
+
+    // Rutas
+    this.set(this.KEYS.RUTAS, [
+      { 
+        id: 1, 
+        nombre: 'Ruta Centro', 
+        descripcion: 'Zona centro y reforma',
+        operadoresAsignados: [1], 
+        clientes: [1, 3], 
+        orden: [1, 3],
+        activa: true,
+        createdAt: '2024-01-01T00:00:00Z' 
+      },
+      { 
+        id: 2, 
+        nombre: 'Ruta Sur', 
+        descripcion: 'Insurgentes y Roma',
+        operadoresAsignados: [2], 
+        clientes: [2, 4, 5], 
+        orden: [2, 4, 5],
+        activa: true,
+        createdAt: '2024-01-01T00:00:00Z' 
+      },
+    ]);
   }
 };
+
+// Motivos de no venta
+const MOTIVOS_NO_VENTA = [
+  { id: 'CERRADO', label: 'Cerrado', icon: '🔒' },
+  { id: 'NO_ABRIO', label: 'No abrió', icon: '🚪' },
+  { id: 'NO_NECESITO', label: 'No necessitó', icon: '👍' },
+  { id: 'NO_ESTABA', label: 'No estaba', icon: '👤' },
+  { id: 'OTRO', label: 'Otra razón', icon: '📝' },
+];
 
 // Session helpers
 const Session = {
