@@ -39,7 +39,7 @@ function renderLogin() {
       <div class="login-card">
         <div class="login-logo">
           <span class="logo-icon">💧</span>
-          <h1>AquaTrack v0.5</h1>
+          <h1>AquaTrack v0.6</h1>
           <p>Sistema de Logística y Ventas</p>
         </div>
         <form id="login-form">
@@ -77,7 +77,7 @@ function renderHeader(user) {
     <header class="header">
       <div class="header-brand">
         <span class="brand-icon">💧</span>
-        AquaTrack v0.5
+        AquaTrack v0.6
       </div>
       <div class="header-user">
         <div style="text-align:right">
@@ -466,6 +466,7 @@ function renderAdminRutas() {
         <td><span class="badge ${r.activa ? 'badge-success' : 'badge-error'}">${r.activa ? 'Activa' : 'Inactiva'}</span></td>
         <td>
           <button class="btn btn-ghost btn-sm" onclick="App.showOrdenarRuta(${r.id})" title="Ordenar clientes">🔢</button>
+          <button class="btn btn-ghost btn-sm" onclick="App.showMapaRuta(${r.id})" title="Ver mapa">🗺️</button>
           <button class="btn btn-ghost btn-sm" onclick="App.showEditRuta(${r.id})" title="Editar">✏️</button>
           <button class="btn btn-ghost btn-sm" onclick="App.deleteRuta(${r.id})" title="Eliminar">🗑️</button>
         </td>

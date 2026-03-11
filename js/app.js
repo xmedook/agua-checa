@@ -384,6 +384,16 @@ const App = {
             ${zonaOptions}
           </select>
         </div>
+        <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Latitud</label>
+              <input type="number" step="0.0001" class="form-input" id="new-client-lat" placeholder="19.4326">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Longitud</label>
+              <input type="number" step="0.0001" class="form-input" id="new-client-lng" placeholder="-99.1332">
+            </div>
+        </div>
         <div class="form-group">
           <label class="form-label">Referencia</label>
           <input type="text" class="form-input" id="new-client-referencia" placeholder="Ej: Frente al parque, portón rojo">
@@ -435,6 +445,8 @@ const App = {
             direccion,
             telefono: document.getElementById('new-client-telefono')?.value.trim() || '',
             zona,
+            lat: parseFloat(document.getElementById('new-client-lat')?.value) || null,
+            lng: parseFloat(document.getElementById('new-client-lng')?.value) || null,
             referencia: document.getElementById('new-client-referencia')?.value.trim() || '',
             numEnvases: parseInt(document.getElementById('new-client-envases')?.value) || 0,
             rackPrestado: document.getElementById('new-client-rack')?.checked || false,
@@ -768,6 +780,75 @@ const App = {
         // Recargar el modal
         this.showOrdenarRuta(rutaId);
         Toast.show('Orden actualizado', 'success');
+    },
+
+    showMapaRuta(rutaId) {
+        const ruta = DB.findById(DB.KEYS.RUTAS, rutaId);
+        if (!ruta) return;
+        
+        const clientesOrden = ruta.orden || ruta.clientes || [];
+        const clientes = clientesOrden.map(id => DB.findById(DB.KEYS.CLIENTS, id)).filter(Boolean);
+        
+        if (clientes.length === 0) {
+            Toast.show('Esta ruta no tiene clientes asignados', 'warning');
+            return;
+        }
+
+        // Get coordinates bounds
+        const lats = clientes.map(c => c.lat).filter(Boolean);
+        const lngs = clientes.map(c => c.lng).filter(Boolean);
+        
+        // Create simple map visualization with SVG
+        const minLat = Math.min(...lats) - 0.01;
+        const maxLat = Math.max(...lats) + 0.01;
+        const minLng = Math.min(...lngs) - 0.01;
+        const maxLng = Math.max(...lngs) + 0.01;
+        
+        const toX = (lng) => ((lng - minLng) / (maxLng - minLng)) * 100;
+        const toY = (lat) => ((maxLat - lat) / (maxLat - minLat)) * 100;
+        
+        // Generate path line
+        const pathPoints = clientes.map(c => {
+            if (!c.lat || !c.lng) return null;
+            return `${toX(c.lng)}%,${toY(c.lat)}%`;
+        }).filter(Boolean).join(' ');
+        
+        const puntosHtml = clientes.map((c, i) => {
+            if (!c.lat || !c.lng) return '';
+            const x = toX(c.lng);
+            const y = toY(c.lat);
+            const visited = false; // Could check against today's movements
+            return `
+                <div class="map-marker" style="left:${x}%;top:${y}%">
+                    <div class="marker-num">${i + 1}</div>
+                    <div class="marker-tooltip">
+                        <strong>${c.nombre}</strong><br>
+                        <span class="text-xs">${c.direccion}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        this.openModal(`
+      <div class="modal-header">
+        <h3>🗺️ Mapa — ${ruta.nombre}</h3>
+        <button class="modal-close" onclick="App.closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="route-map">
+            <svg class="route-line" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <polyline points="${pathPoints}" fill="none" stroke="var(--primary-500)" stroke-width="2" stroke-dasharray="4"/>
+            </svg>
+            ${puntosHtml}
+        </div>
+        <div class="route-leyenda mt-3">
+            <div class="leyenda-item"><span class="marker-dot"></span> Punto de ruta (orden)</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="App.closeModal()">Cerrar</button>
+      </div>
+    `);
     },
 
     deleteRuta(rutaId) {
