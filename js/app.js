@@ -372,6 +372,144 @@ const App = {
     },
 
     // ==========================================
+    // ADMIN — PRODUCTOS
+    // ==========================================
+    showNewProductoForm() {
+        const emojiOptions = ['💧', '🧊', '🎁', '🫗', '🍶', '🍼', '🧋', '🥤', '🍾', '🫙'].map(e => 
+            `<button type="button" class="emoji-btn" onclick="document.getElementById('new-producto-emoji').value='${e}';this.parentElement.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('selected'));this.classList.add('selected')">${e}</button>`
+        ).join('');
+        
+        this.openModal(`
+      <div class="modal-header">
+        <h3>📦 Nuevo Producto</h3>
+        <button class="modal-close" onclick="App.closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Emoji</label>
+          <input type="hidden" id="new-producto-emoji" value="💧">
+          <div class="emoji-selector">${emojiOptions}</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" class="form-input" id="new-producto-nombre" placeholder="Ej: Garrafón de Agua" required>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Precio ($)</label>
+              <input type="number" class="form-input" id="new-producto-precio" placeholder="25" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Unidad</label>
+              <input type="text" class="form-input" id="new-producto-unidad" placeholder="pieza">
+            </div>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="new-producto-activo" checked>
+          <label for="new-producto-activo">Producto activo</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="App.closeModal()">Cancelar</button>
+        <button class="btn btn-success" onclick="App.saveNewProducto()">Guardar</button>
+      </div>
+    `);
+    },
+
+    saveNewProducto() {
+        const nombre = document.getElementById('new-producto-nombre')?.value.trim();
+        if (!nombre) {
+            Toast.show('El nombre es obligatorio', 'warning');
+            return;
+        }
+
+        const nuevoId = PRODUCTOS.length > 0 ? Math.max(...PRODUCTOS.map(p => p.id)) + 1 : 1;
+        const nuevoProducto = {
+            id: nuevoId,
+            nombre,
+            emoji: document.getElementById('new-producto-emoji')?.value || '📦',
+            precio: parseFloat(document.getElementById('new-producto-precio')?.value) || 0,
+            unidad: document.getElementById('new-producto-unidad')?.value || 'pieza',
+            activo: document.getElementById('new-producto-activo')?.checked || false,
+        };
+        
+        PRODUCTOS.push(nuevoProducto);
+        
+        this.closeModal();
+        Toast.show(`Producto "${nombre}" creado`, 'success');
+        this.navigate('admin/productos');
+    },
+
+    showEditProducto(productoId) {
+        const producto = PRODUCTOS.find(p => p.id === productoId);
+        if (!producto) return;
+
+        const emojiOptions = ['💧', '🧊', '🎁', '🫗', '🍶', '🍼', '🧋', '🥤', '🍾', '🫙'].map(e => 
+            `<button type="button" class="emoji-btn ${e === producto.emoji ? 'selected' : ''}" onclick="document.getElementById('edit-producto-emoji').value='${e}';this.parentElement.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('selected'));this.classList.add('selected')">${e}</button>`
+        ).join('');
+        
+        this.openModal(`
+      <div class="modal-header">
+        <h3>✏️ Editar Producto</h3>
+        <button class="modal-close" onclick="App.closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Emoji</label>
+          <input type="hidden" id="edit-producto-emoji" value="${producto.emoji}">
+          <div class="emoji-selector">${emojiOptions}</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" class="form-input" id="edit-producto-nombre" value="${producto.nombre}" required>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Precio ($)</label>
+              <input type="number" class="form-input" id="edit-producto-precio" value="${producto.precio}" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Unidad</label>
+              <input type="text" class="form-input" id="edit-producto-unidad" value="${producto.unidad}">
+            </div>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="edit-producto-activo" ${producto.activo ? 'checked' : ''}>
+          <label for="edit-producto-activo">Producto activo</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="App.closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="App.saveEditProducto(${producto.id})">Guardar</button>
+      </div>
+    `);
+    },
+
+    saveEditProducto(productoId) {
+        const nombre = document.getElementById('edit-producto-nombre')?.value.trim();
+        if (!nombre) {
+            Toast.show('El nombre es obligatorio', 'warning');
+            return;
+        }
+
+        const idx = PRODUCTOS.findIndex(p => p.id === productoId);
+        if (idx !== -1) {
+            PRODUCTOS[idx] = {
+                ...PRODUCTOS[idx],
+                nombre,
+                emoji: document.getElementById('edit-producto-emoji')?.value || '📦',
+                precio: parseFloat(document.getElementById('edit-producto-precio')?.value) || 0,
+                unidad: document.getElementById('edit-producto-unidad')?.value || 'pieza',
+                activo: document.getElementById('edit-producto-activo')?.checked || false,
+            };
+        }
+
+        this.closeModal();
+        Toast.show('Producto actualizado', 'success');
+        this.navigate('admin/productos');
+    },
+
+    // ==========================================
     // ADMIN — NEW CLIENT FORM
     // ==========================================
     showNewClientForm() {

@@ -39,7 +39,7 @@ function renderLogin() {
       <div class="login-card">
         <div class="login-logo">
           <span class="logo-icon">💧</span>
-          <h1>AquaTrack v0.7</h1>
+          <h1>AquaTrack v0.8</h1>
           <p>Sistema de Logística y Ventas</p>
         </div>
         <form id="login-form">
@@ -77,7 +77,7 @@ function renderHeader(user) {
     <header class="header">
       <div class="header-brand">
         <span class="brand-icon">💧</span>
-        AquaTrack v0.7
+        AquaTrack v0.8
       </div>
       <div class="header-user">
         <div style="text-align:right">
@@ -363,6 +363,7 @@ function renderAdminPanel(tab = 'clientes') {
     const user = Session.getUser();
     const tabs = [
         { id: 'clientes', label: '👥 Clientes', icon: '👥' },
+        { id: 'productos', label: '📦 Productos', icon: '📦' },
         { id: 'rutas', label: '🛣️ Rutas', icon: '🛣️' },
         { id: 'movimientos', label: '📋 Movimientos', icon: '📋' },
         { id: 'reportes', label: '📊 Reportes', icon: '📊' },
@@ -374,6 +375,7 @@ function renderAdminPanel(tab = 'clientes') {
 
     let content = '';
     if (tab === 'clientes') content = renderAdminClientes();
+    else if (tab === 'productos') content = renderAdminProductos();
     else if (tab === 'rutas') content = renderAdminRutas();
     else if (tab === 'movimientos') content = renderAdminMovimientos();
     else if (tab === 'reportes') content = renderAdminReportes();
@@ -383,6 +385,48 @@ function renderAdminPanel(tab = 'clientes') {
     <div class="main-content page-enter">
       <div class="admin-tabs">${tabButtons}</div>
       ${content}
+    </div>`;
+}
+
+// =============================================
+// ADMIN — PRODUCTOS TAB
+// =============================================
+function renderAdminProductos() {
+    const productos = PRODUCTOS;
+
+    const rows = productos.map(p => `
+      <tr>
+        <td><span class="product-emoji">${p.emoji}</span></td>
+        <td><strong>${p.nombre}</strong></td>
+        <td class="text-right">$${p.precio.toFixed(2)}</td>
+        <td class="text-sm">${p.unidad}</td>
+        <td><span class="badge ${p.activo ? 'badge-success' : 'badge-error'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="App.showEditProducto(${p.id})" title="Editar">✏️</button>
+        </td>
+      </tr>`).join('');
+
+    return `
+    <div class="search-bar">
+      <div></div>
+      <button class="btn btn-primary" onclick="App.showNewProductoForm()">+ Nuevo Producto</button>
+    </div>
+    <div class="card">
+      <div class="table-container">
+        <table class="data-table" id="productos-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Nombre</th>
+              <th>Precio</th>
+              <th>Unidad</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>`;
 }
 

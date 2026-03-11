@@ -15,6 +15,15 @@ const ZONAS = [
   { id: 'ZONA_5', label: 'Zona 5 (Oriente)' },
 ];
 
+// Productos disponibles
+const PRODUCTOS = [
+  { id: 1, nombre: 'Garrafón de Agua', emoji: '💧', precio: 25, unidad: 'pieza', activo: true },
+  { id: 2, nombre: 'Bolsa de Hielo', emoji: '🧊', precio: 15, unidad: 'bolsa', activo: true },
+  { id: 3, nombre: 'Garrafón (Cortesía)', emoji: '🎁', precio: 0, unidad: 'pieza', activo: true },
+  { id: 4, nombre: 'Bidón 20L', emoji: '🫗', precio: 40, unidad: 'pieza', activo: true },
+  { id: 5, nombre: 'Botella 500ml', emoji: '🍶', precio: 10, unidad: 'caja', activo: false },
+];
+
 // =============================================
 // AquaTrack — Data Layer & Seed Data
 // =============================================
