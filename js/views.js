@@ -39,7 +39,7 @@ function renderLogin() {
       <div class="login-card">
         <div class="login-logo">
           <span class="logo-icon">💧</span>
-          <h1>AquaTrack v0.4</h1>
+          <h1>AquaTrack v0.5</h1>
           <p>Sistema de Logística y Ventas</p>
         </div>
         <form id="login-form">
@@ -77,7 +77,7 @@ function renderHeader(user) {
     <header class="header">
       <div class="header-brand">
         <span class="brand-icon">💧</span>
-        AquaTrack v0.4
+        AquaTrack v0.5
       </div>
       <div class="header-user">
         <div style="text-align:right">

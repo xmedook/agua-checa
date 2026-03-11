@@ -68,8 +68,9 @@ const DB = {
   },
 
   seed() {
-    if (this.get(this.KEYS.USERS)) return; // Already seeded
-
+    // Always seed for demo - in production, check version
+    localStorage.clear(); // Clear for fresh demo data
+    
     // Users
     this.set(this.KEYS.USERS, [
       { id: 1, nombre: 'Juan Pérez', username: 'operador1', password: 'demo123', rol: 'OPERADOR', telefono: '5551234567', estado: 'ACTIVO', createdAt: '2024-01-01T00:00:00Z' },
@@ -137,7 +138,7 @@ const DB = {
       { 
         id: 1, 
         nombre: 'Ruta Centro', 
-        descripcion: 'Zona centro y reforma',
+        descripcion: 'Zona centro y reforma - Clientes prioritarios',
         operadoresAsignados: [1], 
         clientes: [1, 3], 
         orden: [1, 3],
@@ -147,12 +148,32 @@ const DB = {
       { 
         id: 2, 
         nombre: 'Ruta Sur', 
-        descripcion: 'Insurgentes y Roma',
+        descripcion: 'Insurgentes, Roma y zonas aledañas',
         operadoresAsignados: [2], 
         clientes: [2, 4, 5], 
         orden: [2, 4, 5],
         activa: true,
         createdAt: '2024-01-01T00:00:00Z' 
+      },
+      { 
+        id: 3, 
+        nombre: 'Ruta Norte', 
+        descripcion: 'Zona norte - Nuevos clientes',
+        operadoresAsignados: [1, 2], 
+        clientes: [], 
+        orden: [],
+        activa: false,
+        createdAt: '2024-01-15T00:00:00Z' 
+      },
+      { 
+        id: 4, 
+        nombre: 'Ruta Express', 
+        descripcion: 'Clientes de alto volumen - Entregas rápidas',
+        operadoresAsignados: [1], 
+        clientes: [1, 2], 
+        orden: [2, 1],
+        activa: true,
+        createdAt: '2024-02-01T00:00:00Z' 
       },
     ]);
   }
