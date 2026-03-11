@@ -299,6 +299,18 @@ const App = {
         const totalAgua = ventas.reduce((s, m) => s + (m.cantidadAgua || 0), 0);
         const totalHielo = ventas.reduce((s, m) => s + (m.cantidadHielo || 0), 0);
         const ultima = movs.length > 0 ? movs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0] : null;
+        const estadoInfo = ESTADOS_CLIENTE.find(e => e.id === client.estado) || ESTADOS_CLIENTE[0];
+        const zonaInfo = ZONAS.find(z => z.id === client.zona);
+
+        // Historial de últimas 5 visitas
+        const historial = movs.slice(0, 5).map(m => {
+            const isVenta = m.tipo === 'VENTA';
+            return `<div class="historial-item">
+                <span class="historial-fecha">${formatDateTime(m.timestamp)}</span>
+                <span class="historial-tipo ${isVenta ? 'venta' : 'sin-venta'}">${isVenta ? '💧' + m.cantidadAgua + ' 🧊' + m.cantidadHielo : 'Sin venta'}</span>
+                <span class="historial-op">${getOperadorName(m.operadorId)}</span>
+            </div>`;
+        }).join('');
 
         this.openModal(`
       <div class="modal-header">
@@ -306,10 +318,23 @@ const App = {
         <button class="modal-close" onclick="App.closeModal()">✕</button>
       </div>
       <div class="modal-body">
-        <div class="form-group"><label class="form-label">Dirección</label><p>${client.direccion}</p></div>
+        <div class="detail-grid">
+            <div class="detail-item"><label>Código</label><span>${client.codigo || 'CLI-' + String(client.id).padStart(3, '0')}</span></div>
+            <div class="detail-item"><label>Estado</label><span class="badge badge-${estadoInfo.color}">${estadoInfo.label}</span></div>
+            <div class="detail-item"><label>Zona</label><span>${zonaInfo ? zonaInfo.label : '—'}</span></div>
+            <div class="detail-item"><label>Teléfono</label><span>${client.telefono || '—'}</span></div>
+        </div>
+        <div class="form-group mt-2"><label class="form-label">Dirección</label><p>${client.direccion}</p></div>
         ${client.referencia ? `<div class="form-group"><label class="form-label">Referencia</label><p>${client.referencia}</p></div>` : ''}
-        ${client.telefono ? `<div class="form-group"><label class="form-label">Teléfono</label><p>${client.telefono}</p></div>` : ''}
-        ${client.notas ? `<div class="form-group"><label class="form-label">Notas</label><p class="text-sm text-muted">${client.notas}</p></div>` : ''}
+        
+        <hr class="divider">
+        <div class="detail-grid">
+            <div class="detail-item"><label># Envases</label><span>${client.numEnvases || '—'}</span></div>
+            <div class="detail-item"><label>Rack Prestado</label><span>${client.rackPrestado ? '✅ Sí' : '❌ No'}</span></div>
+        </div>
+        ${client.notas ? `<div class="form-group mt-2"><label class="form-label">Notas</label><p class="text-sm">${client.notas}</p></div>` : ''}
+        ${client.notasMeta ? `<div class="form-group"><label class="form-label">Notas Meta</label><p class="text-sm text-muted">${client.notasMeta}</p></div>` : ''}
+        
         <hr class="divider">
         <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
           <div class="stat-card"><div class="stat-value">${movs.length}</div><div class="stat-label">Visitas</div></div>
@@ -317,8 +342,11 @@ const App = {
           <div class="stat-card"><div class="stat-value">${totalHielo}</div><div class="stat-label">🧊 Total</div></div>
           <div class="stat-card"><div class="stat-value">${ultima ? formatDate(ultima.timestamp) : 'N/A'}</div><div class="stat-label">Última visita</div></div>
         </div>
+        
+        ${historial ? `<div class="mt-3"><label class="form-label">📜 Historial Reciente</label><div class="historial-list">${historial}</div></div>` : ''}
       </div>
       <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="App.showEditClientForm(${client.id}); App.closeModal();">✏️ Editar</button>
         <button class="btn btn-primary" onclick="App.closeModal()">Cerrar</button>
       </div>
     `);
@@ -328,6 +356,9 @@ const App = {
     // ADMIN — NEW CLIENT FORM
     // ==========================================
     showNewClientForm() {
+        const estadoOptions = ESTADOS_CLIENTE.map(e => `<option value="${e.id}">${e.label}</option>`).join('');
+        const zonaOptions = ZONAS.map(z => `<option value="${z.id}">${z.label}</option>`).join('');
+        
         this.openModal(`
       <div class="modal-header">
         <h3>➕ Nuevo Cliente</h3>
@@ -343,16 +374,41 @@ const App = {
           <input type="text" class="form-input" id="new-client-direccion" placeholder="Ej: Av. Insurgentes 100, Col. Roma">
         </div>
         <div class="form-group">
-          <label class="form-label">Referencia</label>
-          <input type="text" class="form-input" id="new-client-referencia" placeholder="Ej: Frente al parque, portón rojo">
-        </div>
-        <div class="form-group">
           <label class="form-label">Teléfono</label>
           <input type="tel" class="form-input" id="new-client-telefono" placeholder="Ej: 5551234567">
         </div>
         <div class="form-group">
+          <label class="form-label">Zona</label>
+          <select class="form-input" id="new-client-zona">
+            <option value="">Seleccionar zona</option>
+            ${zonaOptions}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Referencia</label>
+          <input type="text" class="form-input" id="new-client-referencia" placeholder="Ej: Frente al parque, portón rojo">
+        </div>
+        <div class="form-group">
+          <label class="form-label"># Envases</label>
+          <input type="number" class="form-input" id="new-client-envases" placeholder="Ej: 5" min="0">
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="new-client-rack">
+          <label for="new-client-rack">Rack prestado</label>
+        </div>
+        <div class="form-group mt-2">
           <label class="form-label">Notas</label>
-          <textarea class="form-input" id="new-client-notas" placeholder="Notas adicionales..."></textarea>
+          <textarea class="form-input" id="new-client-notas" placeholder="Notas operativas..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notas Meta</label>
+          <textarea class="form-input" id="new-client-notasmeta" placeholder="Notas internas o de seguimiento..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select class="form-input" id="new-client-estado">
+            ${estadoOptions}
+          </select>
         </div>
       </div>
       <div class="modal-footer">
@@ -370,13 +426,22 @@ const App = {
             return;
         }
 
+        const zona = document.getElementById('new-client-zona')?.value || 'ZONA_1';
+        const estado = document.getElementById('new-client-estado')?.value || 'ACTIVO';
+        const codigo = `CLI-${String(Date.now()).slice(-6)}`;
+
         const client = DB.add(DB.KEYS.CLIENTS, {
             nombre,
             direccion,
-            referencia: document.getElementById('new-client-referencia')?.value.trim() || '',
             telefono: document.getElementById('new-client-telefono')?.value.trim() || '',
+            zona,
+            referencia: document.getElementById('new-client-referencia')?.value.trim() || '',
+            numEnvases: parseInt(document.getElementById('new-client-envases')?.value) || 0,
+            rackPrestado: document.getElementById('new-client-rack')?.checked || false,
             notas: document.getElementById('new-client-notas')?.value.trim() || '',
-            estado: 'ACTIVO',
+            notasMeta: document.getElementById('new-client-notasmeta')?.value.trim() || '',
+            estado,
+            codigo,
         });
 
         // Generate QR
@@ -389,6 +454,105 @@ const App = {
         // Refresh and show QR
         this.navigate('admin/clientes');
         setTimeout(() => this.showClientQR(client.id), 300);
+    },
+
+    // ==========================================
+    // ADMIN — EDIT CLIENT
+    // ==========================================
+    showEditClientForm(clienteId) {
+        const client = DB.findById(DB.KEYS.CLIENTS, clienteId);
+        if (!client) return;
+        
+        const estadoOptions = ESTADOS_CLIENTE.map(e => 
+            `<option value="${e.id}" ${e.id === client.estado ? 'selected' : ''}>${e.label}</option>`
+        ).join('');
+        const zonaOptions = ZONAS.map(z => 
+            `<option value="${z.id}" ${z.id === client.zona ? 'selected' : ''}>${z.label}</option>`
+        ).join('');
+
+        this.openModal(`
+      <div class="modal-header">
+        <h3>✏️ Editar Cliente</h3>
+        <button class="modal-close" onclick="App.closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" class="form-input" id="edit-client-nombre" value="${client.nombre}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dirección *</label>
+          <input type="text" class="form-input" id="edit-client-direccion" value="${client.direccion}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input type="tel" class="form-input" id="edit-client-telefono" value="${client.telefono || ''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Zona</label>
+          <select class="form-input" id="edit-client-zona">
+            <option value="">Seleccionar zona</option>
+            ${zonaOptions}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Referencia</label>
+          <input type="text" class="form-input" id="edit-client-referencia" value="${client.referencia || ''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label"># Envases</label>
+          <input type="number" class="form-input" id="edit-client-envases" value="${client.numEnvases || 0}" min="0">
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="edit-client-rack" ${client.rackPrestado ? 'checked' : ''}>
+          <label for="edit-client-rack">Rack prestado</label>
+        </div>
+        <div class="form-group mt-2">
+          <label class="form-label">Notas</label>
+          <textarea class="form-input" id="edit-client-notas">${client.notas || ''}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notas Meta</label>
+          <textarea class="form-input" id="edit-client-notasmeta">${client.notasMeta || ''}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select class="form-input" id="edit-client-estado">
+            ${estadoOptions}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="App.closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="App.saveEditClient(${client.id})">Guardar Cambios</button>
+      </div>
+    `);
+    },
+
+    saveEditClient(clienteId) {
+        const nombre = document.getElementById('edit-client-nombre')?.value.trim();
+        const direccion = document.getElementById('edit-client-direccion')?.value.trim();
+        if (!nombre || !direccion) {
+            Toast.show('Nombre y dirección son obligatorios', 'warning');
+            return;
+        }
+
+        DB.update(DB.KEYS.CLIENTS, clienteId, {
+            nombre,
+            direccion,
+            telefono: document.getElementById('edit-client-telefono')?.value.trim() || '',
+            zona: document.getElementById('edit-client-zona')?.value || 'ZONA_1',
+            referencia: document.getElementById('edit-client-referencia')?.value.trim() || '',
+            numEnvases: parseInt(document.getElementById('edit-client-envases')?.value) || 0,
+            rackPrestado: document.getElementById('edit-client-rack')?.checked || false,
+            notas: document.getElementById('edit-client-notas')?.value.trim() || '',
+            notasMeta: document.getElementById('edit-client-notasmeta')?.value.trim() || '',
+            estado: document.getElementById('edit-client-estado')?.value || 'ACTIVO',
+        });
+
+        this.closeModal();
+        Toast.show('Cliente actualizado', 'success');
+        this.navigate('admin/clientes');
     },
 
     // ==========================================
@@ -646,10 +810,20 @@ const App = {
     // ==========================================
     filterClients() {
         const search = (document.getElementById('search-clients')?.value || '').toLowerCase();
+        const estado = document.getElementById('filter-estado')?.value || '';
+        const zona = document.getElementById('filter-zona')?.value || '';
         const rows = document.querySelectorAll('#clients-table tbody tr');
+        
         rows.forEach(row => {
             const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(search) ? '' : 'none';
+            const rowEstado = row.getAttribute('data-estado');
+            const rowZona = row.getAttribute('data-zona');
+            
+            let show = text.includes(search);
+            if (estado && rowEstado !== estado) show = false;
+            if (zona && rowZona !== zona) show = false;
+            
+            row.style.display = show ? '' : 'none';
         });
     },
 

@@ -39,7 +39,7 @@ function renderLogin() {
       <div class="login-card">
         <div class="login-logo">
           <span class="logo-icon">💧</span>
-          <h1>AquaTrack v0.2</h1>
+          <h1>AquaTrack v0.3</h1>
           <p>Sistema de Logística y Ventas</p>
         </div>
         <form id="login-form">
@@ -77,7 +77,7 @@ function renderHeader(user) {
     <header class="header">
       <div class="header-brand">
         <span class="brand-icon">💧</span>
-        AquaTrack v0.2
+        AquaTrack v0.3
       </div>
       <div class="header-user">
         <div style="text-align:right">
@@ -237,6 +237,12 @@ function renderVentaPage(clienteId) {
     const cliente = DB.findById(DB.KEYS.CLIENTS, parseInt(clienteId));
     if (!cliente) return renderNotFound();
 
+    // Info del cliente
+    const infoItems = [];
+    if (cliente.numEnvases) infoItems.push(`📦 ${cliente.numEnvases} envases`);
+    if (cliente.rackPrestado) infoItems.push('🗄️ Rack prestado');
+    const infoHtml = infoItems.length > 0 ? `<div class="client-info-bar">${infoItems.join(' • ')}</div>` : '';
+
     return `
     ${renderHeader(user)}
     <div class="main-content page-enter">
@@ -246,6 +252,8 @@ function renderVentaPage(clienteId) {
         <h2>📍 ${cliente.nombre}</h2>
         <div class="client-address">📌 ${cliente.direccion}</div>
         ${cliente.referencia ? `<div class="text-sm text-muted mt-1">Ref: ${cliente.referencia}</div>` : ''}
+        ${infoHtml}
+        ${cliente.notas ? `<div class="client-notes mt-2">📝 ${cliente.notas}</div>` : ''}
       </div>
 
       <div class="flex flex-col gap-3" id="counters-area">
@@ -378,26 +386,42 @@ function renderAdminPanel(tab = 'clientes') {
 // =============================================
 function renderAdminClientes() {
     const clients = DB.getAll(DB.KEYS.CLIENTS);
+    
+    const estadoOptions = ESTADOS_CLIENTE.map(e => `<option value="${e.id}">${e.label}</option>`).join('');
+    const zonaOptions = ZONAS.map(z => `<option value="${z.id}">${z.label}</option>`).join('');
 
     const rows = clients.map(c => {
         const qr = DB.getAll(DB.KEYS.QRS).find(q => q.clienteId === c.id);
         const movs = DB.getAll(DB.KEYS.MOVEMENTS).filter(m => m.clienteId === c.id);
+        const estadoInfo = ESTADOS_CLIENTE.find(e => e.id === c.estado) || ESTADOS_CLIENTE[0];
+        const zonaInfo = ZONAS.find(z => z.id === c.zona);
         return `
-      <tr>
+      <tr data-estado="${c.estado}" data-zona="${c.zona || ''}">
+        <td><strong>${c.codigo || 'CLI-' + String(c.id).padStart(3, '0')}</strong></td>
         <td><strong>${c.nombre}</strong></td>
         <td class="text-sm">${c.direccion}</td>
-        <td><span class="badge ${c.estado === 'ACTIVO' ? 'badge-success' : 'badge-error'}">${c.estado}</span></td>
+        <td><span class="badge badge-${estadoInfo.color}">${estadoInfo.label}</span></td>
+        <td class="text-sm">${zonaInfo ? zonaInfo.label : '—'}</td>
         <td class="text-center">${movs.length}</td>
         <td>
           <button class="btn btn-ghost btn-sm" onclick="App.showClientQR(${c.id})" title="Ver QR">📱</button>
           <button class="btn btn-ghost btn-sm" onclick="App.showClientDetail(${c.id})" title="Ver detalle">👁️</button>
+          <button class="btn btn-ghost btn-sm" onclick="App.showEditClientForm(${c.id})" title="Editar">✏️</button>
         </td>
       </tr>`;
     }).join('');
 
     return `
-    <div class="search-bar">
+    <div class="filters-row">
       <input type="text" class="form-input" placeholder="🔍 Buscar cliente..." id="search-clients" oninput="App.filterClients()">
+      <select class="form-input" id="filter-estado" onchange="App.filterClients()">
+        <option value="">Todos los estados</option>
+        ${estadoOptions}
+      </select>
+      <select class="form-input" id="filter-zona" onchange="App.filterClients()">
+        <option value="">Todas las zonas</option>
+        ${zonaOptions}
+      </select>
       <button class="btn btn-primary" onclick="App.showNewClientForm()">+ Nuevo</button>
     </div>
     <div class="card">
@@ -405,9 +429,11 @@ function renderAdminClientes() {
         <table class="data-table" id="clients-table">
           <thead>
             <tr>
+              <th>Código</th>
               <th>Nombre</th>
               <th>Dirección</th>
               <th>Estado</th>
+              <th>Zona</th>
               <th>Visitas</th>
               <th>Acciones</th>
             </tr>

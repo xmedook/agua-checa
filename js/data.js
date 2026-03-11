@@ -1,3 +1,20 @@
+// Estados de cliente
+const ESTADOS_CLIENTE = [
+  { id: 'ACTIVO', label: 'Activo', color: 'success' },
+  { id: 'NO_COMPRA', label: 'No compra', color: 'warning' },
+  { id: 'VACACIONES', label: 'Vacaciones', color: 'info' },
+  { id: 'BAJA', label: 'Baja', color: 'error' },
+];
+
+// Zonas disponibles
+const ZONAS = [
+  { id: 'ZONA_1', label: 'Zona 1 (Centro)' },
+  { id: 'ZONA_2', label: 'Zona 2 (Sur)' },
+  { id: 'ZONA_3', label: 'Zona 3 (Norte)' },
+  { id: 'ZONA_4', label: 'Zona 4 (Poniente)' },
+  { id: 'ZONA_5', label: 'Zona 5 (Oriente)' },
+];
+
 // =============================================
 // AquaTrack — Data Layer & Seed Data
 // =============================================
@@ -62,11 +79,12 @@ const DB = {
 
     // Clients
     this.set(this.KEYS.CLIENTS, [
-      { id: 1, nombre: 'Tienda La Esperanza', direccion: 'Av. Reforma 123, Col. Centro', referencia: 'Esquina con calle Morelos, portón azul', telefono: '5551112233', estado: 'ACTIVO', notas: 'Compra regular: 5 garrafones semanales', createdAt: '2024-01-01T00:00:00Z' },
-      { id: 2, nombre: 'Restaurant El Buen Sabor', direccion: 'Calle Hidalgo 456, Col. Juárez', referencia: 'Entre 5 de Mayo y Guerrero, fachada verde', telefono: '5552223344', estado: 'ACTIVO', notas: 'Demanda alta de hielo los fines de semana', createdAt: '2024-01-02T00:00:00Z' },
-      { id: 3, nombre: 'Oficinas TechCorp', direccion: 'Paseo de la Reforma 789, Col. Polanco', referencia: 'Torre corporativa piso 5', telefono: '5553334455', estado: 'ACTIVO', notas: '3 garrafones quincenales, contacto: Lic. Pérez', createdAt: '2024-01-03T00:00:00Z' },
-      { id: 4, nombre: 'Café Moderno', direccion: 'Insurgentes Sur 500, Col. Roma', referencia: 'Junto a la farmacia', telefono: '5554445566', estado: 'ACTIVO', notas: 'Solo hielo, 10 bolsas semanales', createdAt: '2024-01-04T00:00:00Z' },
-      { id: 5, nombre: 'Gym FitLife', direccion: 'Av. Universidad 200, Col. Narvarte', referencia: 'Planta baja, local 3', telefono: '5555556677', estado: 'ACTIVO', notas: 'Garrafones para dispensadores', createdAt: '2024-01-05T00:00:00Z' },
+      { id: 1, nombre: 'Tienda La Esperanza', direccion: 'Av. Reforma 123, Col. Centro', referencia: 'Esquina con calle Morelos, portón azul', telefono: '5551112233', estado: 'ACTIVO', zona: 'ZONA_1', codigo: 'CLI-001', numEnvases: 5, rackPrestado: true, notas: 'Compra regular: 5 garrafones semanales', notasMeta: 'Cliente preferente desde 2020', createdAt: '2024-01-01T00:00:00Z' },
+      { id: 2, nombre: 'Restaurant El Buen Sabor', direccion: 'Calle Hidalgo 456, Col. Juárez', referencia: 'Entre 5 de Mayo y Guerrero, fachada verde', telefono: '5552223344', estado: 'ACTIVO', zona: 'ZONA_2', codigo: 'CLI-002', numEnvases: 8, rackPrestado: true, notas: 'Demanda alta de hielo los fines de semana', notasMeta: 'Abierto hasta las 11pm', createdAt: '2024-01-02T00:00:00Z' },
+      { id: 3, nombre: 'Oficinas TechCorp', direccion: 'Paseo de la Reforma 789, Col. Polanco', referencia: 'Torre corporativa piso 5', telefono: '5553334455', estado: 'ACTIVO', zona: 'ZONA_1', codigo: 'CLI-003', numEnvases: 3, rackPrestado: false, notas: '3 garrafones quincenales, contacto: Lic. Pérez', notasMeta: 'Entrada por calle lateral', createdAt: '2024-01-03T00:00:00Z' },
+      { id: 4, nombre: 'Café Moderno', direccion: 'Insurgentes Sur 500, Col. Roma', referencia: 'Junto a la farmacia', telefono: '5554445566', estado: 'NO_COMPRA', zona: 'ZONA_2', codigo: 'CLI-004', numEnvases: 10, rackPrestado: true, notas: 'Solo hielo, 10 bolsas semanales', notasMeta: 'En negociación de precio', createdAt: '2024-01-04T00:00:00Z' },
+      { id: 5, nombre: 'Gym FitLife', direccion: 'Av. Universidad 200, Col. Narvarte', referencia: 'Planta baja, local 3', telefono: '5555556677', estado: 'VACACIONES', zona: 'ZONA_3', codigo: 'CLI-005', numEnvases: 6, rackPrestado: true, notas: 'Garrafones para dispensadores', notasMeta: 'Regresa en marzo', createdAt: '2024-01-05T00:00:00Z' },
+      { id: 6, nombre: 'Farmacia San José', direccion: 'Av. López Mateos 50, Col. Del Valle', referencia: 'Frente al超市', telefono: '5556667788', estado: 'BAJA', zona: 'ZONA_4', codigo: 'CLI-006', numEnvases: 2, rackPrestado: false, notas: 'Cerró permanentemente', notasMeta: 'Cliente dado de baja', createdAt: '2024-01-06T00:00:00Z' },
     ]);
 
     // QR codes
